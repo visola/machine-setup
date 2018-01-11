@@ -1,0 +1,4 @@
+#!/bin/bash
+time $*
+printf '\7'
+

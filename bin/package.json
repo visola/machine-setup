@@ -1,0 +1,9 @@
+{
+  "name": "bin",
+  "version": "1.0.0",
+  "description": "Helpful scripts for day-to-day usage.",
+  "main": "git-info.js",
+  "dependencies": {
+    "commander": "^2.13.0"
+  }
+}
