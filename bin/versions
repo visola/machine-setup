@@ -1,0 +1,19 @@
+#!/bin/bash
+
+show_version_for_command() {
+  if which $1 >> /dev/null; then
+    echo "-- $(tput bold)$1$(tput sgr 0) --"
+    $2
+  else
+    echo "$1 not installed"
+  fi
+  echo
+}
+
+show_version_for_command "go" "go version"
+show_version_for_command "node" "node --version"
+show_version_for_command "java" "java -version"
+show_version_for_command "javac" "javac -version"
+show_version_for_command "mvn" "mvn --version"
+show_version_for_command "gradle" "gradle --version"
+show_version_for_command "ant" "ant -version"
