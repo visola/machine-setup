@@ -18,4 +18,5 @@ show_version_for_command "mvn" "mvn --version"
 show_version_for_command "gradle" "gradle --version"
 show_version_for_command "ant" "ant -version"
 show_version_for_command "curl" "curl -V"
+show_version_for_command "python" "python --version"
 
