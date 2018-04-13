@@ -31,9 +31,10 @@ lineReader.on('line', function (line) {
     currentProject.dependencies.push({
       artifact: artifact[1],
       group: artifact[0],
-      version: artifact[2],
       level: match[1].split(" ").filter((s) => s != "").length,
       scope: match[4],
+      type: artifact[2],
+      version: artifact[3],
     });
   }
 });
