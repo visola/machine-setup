@@ -135,7 +135,7 @@ const runMavenCommand = (args) => {
     mavenProcess.stdout.on('data', (chunk) => {
       const data = chunk.toString('utf8');
       output += data;
-      const split = data.split('\n').filter((l) => l != "");
+      const split = output.split('\n').filter((l) => l != "");
       lastLine = split[split.length - 1];
     });
 
