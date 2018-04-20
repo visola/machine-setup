@@ -5,6 +5,7 @@ const xmlParser = require('xml2json');
 
 const startTreeGoalRegexp = /maven-dependency-plugin:.*:tree.*@ (.*) ---/;
 const dependencyRegexp = /\[INFO] ((\|  |   |\+-|\\-)+) (.*):(compile|impor|provided|runtime|system|test)/;
+const taskNameRegexp = /\[INFO] --- (.+):(.+):(.+) \((.+)\) @ (.+) ---/;
 
 const calculateDependencies = (projects) => {
   const projectsByArtifactId = {};
@@ -45,7 +46,11 @@ const calculateDependencies = (projects) => {
 };
 
 const findProjects = (baseDir) => {
-  process.stdout.write(`\r\x1b[KReading directory: ${baseDir}`);
+  let text = `\r\x1b[KReading directory: ${baseDir}`;
+  if (process.stdout.columns && process.stdout.columns < text.length) {
+    text = text.substr(0, process.stdout.columns - 3) + '...';
+  }
+  process.stdout.write(text);
   const projects = [];
   if (!baseDir.endsWith("/")) {
     baseDir = `${baseDir}/`;
@@ -126,17 +131,40 @@ const runMavenCommand = (args) => {
   return new Promise((resolve) => {
     const mavenProcess = spawn("mvn", args);
     let output = "";
-    let lastLine = "N/A";
 
     const timer = setInterval(() => {
-      process.stdout.write(`\r\x1b[KMaven running for ${Math.round( (Date.now() - start) / 100) / 10}s: ${lastLine}`);
+      let taskInfo = null;
+      if (output != "") {
+        const split = output.split("\n").filter((l) => l != '');
+        for (let n = split.length - 1; n >= 0; n--) {
+          const match = split[n].match(taskNameRegexp);
+          if (match) {
+            taskInfo = {
+              plugin: match[1],
+              task: match[3],
+              project: match[5],
+            };
+            break;
+          }
+        }
+      }
+
+      let time = Math.round( (Date.now() - start) / 100) / 10 + '';
+      if (time.indexOf(".") < 0) {
+        time += '.0';
+      }
+
+      if (taskInfo == null) {
+        process.stdout.write(`\r\x1b[KRunning maven ${time}s: Initializing...`);
+      } else {
+        process.stdout.write(`\r\x1b[KRunning \x1b[36m${taskInfo.plugin}:${taskInfo.task}\x1b[0m in project \x1b[36m${taskInfo.project}\x1b[0m (${time}s)`);
+      }
+
     }, 200);
 
     mavenProcess.stdout.on('data', (chunk) => {
       const data = chunk.toString('utf8');
       output += data;
-      const split = output.split('\n').filter((l) => l != "");
-      lastLine = split[split.length - 1];
     });
 
     mavenProcess.on('exit', (code, signal) => {
@@ -174,8 +202,7 @@ findProjectsWithDependencies(process.cwd())
 
     const toBuild = [project, ...internalDependencies];
     const projectList = toBuild.map((p) => p.id).join(',');
-    console.log(`Running maven: mvn -pl ${projectList} ${args.join(' ')}`);
-    
+
     return runMavenCommand(['-pl', projectList, ...args]);
   }).then((output) => {
     console.log(output);
