@@ -72,7 +72,7 @@ files.forEach((fileName) => {
 
     if (exceptionLineRegExp.exec(line) && !isLineFromException(line)) {
       split = line.split(':');
-      message = split[1] || '';
+      message = split.slice(1).join(':') || '';
       type = split[0];
       exception = {
         file: fileName,
