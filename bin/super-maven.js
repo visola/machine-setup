@@ -2,6 +2,10 @@ const fs = require('fs');
 const { spawn } = require('child_process');
 const readline = require('readline');
 const xmlParser = require('xml2json');
+const crypto = require('crypto');
+const os = require('os');
+
+const CACHE_DIR = `${os.homedir()}/.super_maven`;
 
 const startTreeGoalRegexp = /maven-dependency-plugin:.*:tree.*@ (.*) ---/;
 const dependencyRegexp = /\[INFO] ((\|  |   |\+-|\\-)+) (.*):(compile|impor|provided|runtime|system|test)/;
@@ -71,9 +75,18 @@ const findProjects = (baseDir) => {
 }
 
 const findProjectsWithDependencies = (baseDir) => {
+  const fromCache = loadFromCache(baseDir);
+  if (fromCache) {
+    return Promise.resolve(fromCache);
+  }
+
   const projects = findProjects(baseDir);
   process.stdout.write(`\r\x1b[KProjects found: ${projects.length}\n`);
-  return calculateDependencies(projects);
+  return calculateDependencies(projects)
+    .then((projects) => {
+      saveToCache(baseDir, projects);
+      return projects;
+    });
 }
 
 const getArtifactInfoFromPom = (pom, parent) => {
@@ -126,6 +139,15 @@ const isProject = (baseDir) => {
   }
 }
 
+const loadFromCache = (baseDir) => {
+  try {
+    const hash = crypto.createHmac('sha256', baseDir).digest('hex');
+    return JSON.parse(fs.readFileSync(`${CACHE_DIR}/${hash}.json`));
+  } catch (e) {
+    return null;
+  }
+}
+
 const runMavenCommand = (args) => {
   const start = Date.now();
   return new Promise((resolve) => {
@@ -174,6 +196,20 @@ const runMavenCommand = (args) => {
     });
   });
 };
+
+const saveToCache = (baseDir, projects) => {
+  try {
+    const hash = crypto.createHmac('sha256', baseDir).digest('hex');
+    if (!fs.existsSync(CACHE_DIR)) {
+      fs.mkdirSync(CACHE_DIR);
+    }
+    return fs.writeFileSync(`${CACHE_DIR}/${hash}.json`, JSON.stringify(projects));
+  } catch (e) {
+    return null;
+  }
+}
+
+// ----- MAIN ------
 
 const projectId = process.argv[2];
 const args = process.argv.slice(3);
