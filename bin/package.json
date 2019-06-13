@@ -4,8 +4,8 @@
   "description": "Helpful scripts for day-to-day usage.",
   "main": "git-info.js",
   "dependencies": {
-    "commander": "^2.13.0",
-    "request": "^2.83.0",
+    "commander": "^2.20.0",
+    "request": "^2.88.0",
     "xml2json": "^0.11.2"
   }
 }
