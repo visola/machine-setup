@@ -1,0 +1,12 @@
+#!/bin/bash
+
+find . -name "$1"
+echo -e "\033[0;31m### Going to delete all files above ###\033[m"
+read -p $'\033[0;31mAre you sure? \033[m' -n 1 -r
+
+echo
+if [[ $REPLY =~ ^[Yy]$ ]]
+then
+  echo "Deleting all..."
+  find . -name "$1" -exec rm -Rvf {} \;
+fi
