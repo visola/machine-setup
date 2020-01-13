@@ -8,3 +8,6 @@ OUTPUT_DIR=$DIR/binaries
 for command_dir in $(ls $COMMANDS_DIR); do
   go build -o $OUTPUT_DIR/$command_dir $COMMANDS_DIR/$command_dir/main.go
 done
+
+# Make sure all files from here are copied to their latest versions
+rsync -ahzv $DIR/binaries/* ~/bin
