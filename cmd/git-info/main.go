@@ -50,16 +50,16 @@ func main() {
 		}
 	}
 
-	if len(status) == 0 {
-		fmt.Printf("%s %s", branch, color.GreenString("(clean)"))
-		return
-	}
-
 	for prefix, count := range mapOfStatuses {
 		if count == 0 {
 			continue
 		}
 		status = append(status, fmt.Sprintf("%d %s", count, strings.ToUpper(prefix)))
+	}
+
+	if len(status) == 0 {
+		fmt.Printf("%s %s", branch, color.GreenString("(clean)"))
+		return
 	}
 
 	fmt.Printf("%s %s", branch, color.RedString("(%s)", strings.Join(status, ", ")))
