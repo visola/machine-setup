@@ -11,4 +11,4 @@ source alias_node_files.sh
 
 popd >> /dev/null
 
-get-quote
+~/bin/get-quote
