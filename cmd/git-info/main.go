@@ -6,11 +6,11 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/fatih/color"
+	"github.com/labstack/gommon/color"
 )
 
 func main() {
-	color.NoColor = false
+	color.Enable()
 
 	matchBranchLine := regexp.MustCompile("On branch (.*)")
 
@@ -34,7 +34,7 @@ func main() {
 	for _, line := range lines {
 		matches := matchBranchLine.FindStringSubmatch(line)
 		if len(matches) > 0 {
-			branch = color.YellowString(matches[1])
+			branch = color.Yellow(matches[1])
 		}
 
 		line = strings.TrimSpace(line)
@@ -58,9 +58,9 @@ func main() {
 	}
 
 	if len(status) == 0 {
-		fmt.Printf("%s %s", branch, color.GreenString("(clean)"))
+		fmt.Printf("%s %s", branch, color.Green("(clean)"))
 		return
 	}
 
-	fmt.Printf("%s %s", branch, color.RedString("(%s)", strings.Join(status, ", ")))
+	fmt.Printf("%s %s", branch, color.Red(fmt.Sprintf("(%s)", strings.Join(status, ", "))))
 }
