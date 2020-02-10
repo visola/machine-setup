@@ -1,2 +1,2 @@
 #!/bin/bash
-kubectl get events --watch -o json | jq -r '"[" + .type[:4] + "] " + .metadata.name[:50] + ": " + .message'
+kubectl get events --watch -o json $* | jq -r '"[" + .type[:4] + "] " + .metadata.name[:50] + ": " + .message'
