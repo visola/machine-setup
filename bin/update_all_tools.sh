@@ -15,5 +15,9 @@ cp -v $temp_dir/http/http ~/bin/
 cp -v $temp_dir/http/go-http-completion ~/bin/
 cp -v $temp_dir/http/go-http-daemon ~/bin/
 
+echo "--- Updating mechanic ---"
+curl -L -o ~/bin/mechanic https://github.com/VinnieApps/mechanic/releases/latest/download/mechanic_darwin_amd64
+chmod +x ~/bin/mechanic
+
 echo "Cleaning up..."
 rm -Rfv $temp_dir
