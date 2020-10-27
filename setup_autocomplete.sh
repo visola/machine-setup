@@ -1,7 +1,9 @@
 #!/bin/bash
 
 if [ -d ~/autocomplete/ ]; then
-  for f in ~/autocomplete/*; do
-    . $f
-  done
+  if [ -n "$BASH_VERSION" ]; then
+    for f in ~/autocomplete/*.bash; do
+      . $f
+    done
+  fi
 fi
