@@ -1,0 +1,10 @@
+#!/bin/bash
+
+if [ -z $WATCH_INTERVAL ]; then
+    WATCH_INTERVAL=2
+fi
+
+while :; do clear;
+    $*
+    sleep $WATCH_INTERVAL
+done
