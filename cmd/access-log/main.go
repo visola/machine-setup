@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -11,10 +12,12 @@ import (
 	"os"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	ui "github.com/gizak/termui/v3"
 	"github.com/gizak/termui/v3/widgets"
+	"gopkg.in/yaml.v2"
 )
 
 type AccessLogRecord struct {
@@ -27,10 +30,22 @@ type AccessLogRecord struct {
 	Status    int
 }
 
+type Config struct {
+	Domains []string
+	After   string
+}
+
 //                                                1   2          3       4     5              6         7
 var accessLogPattern = regexp.MustCompile(`.*\[0m(.*) (.*) - - \[(.*)\] "(\w+) (.*) HTTP/.*" (\d{1,3}) (\d+) ".*"`)
 
 func main() {
+	config := readConfiguration(os.Args[2])
+
+	startAtByte := 0
+	if len(os.Args) == 4 {
+		startAtByte, _ = strconv.Atoi(os.Args[3])
+	}
+
 	file, openErr := os.Open(os.Args[1])
 	if openErr != nil {
 		log.Print(openErr)
@@ -43,6 +58,8 @@ func main() {
 		log.Print(statErr)
 		return
 	}
+
+	file.Seek(int64(startAtByte), 0)
 
 	if err := ui.Init(); err != nil {
 		log.Printf("failed to initialize termui: %v", err)
@@ -60,24 +77,26 @@ func main() {
 
 	paragraph := widgets.NewParagraph()
 	paragraph.Title = "Status"
-	paragraph.Text = "0"
+	paragraph.Text = "Test"
 	paragraph.SetRect(0, 3, 150, 8)
 	paragraph.BorderStyle.Fg = ui.ColorWhite
 	paragraph.TitleStyle.Fg = ui.ColorCyan
 
 	ui.Render(progressGauge, paragraph)
+	time.Sleep(10000)
 
 	client := &http.Client{}
 	counter := 0
+	totalCounter := 0
 
 	go (func() {
-		var totalBytesRead int64
+		totalBytesRead := int64(startAtByte)
 		scanner := bufio.NewScanner(file)
 		for scanner.Scan() {
+			totalCounter += 1
 			found := accessLogPattern.FindStringSubmatch(scanner.Text())
 			failed := false
 			if len(found) == 8 {
-				counter++
 				happendAt, parseErr := time.Parse("02/Jan/2006:15:04:05 -0700", found[3])
 				if parseErr != nil {
 					paragraph.Text = fmt.Sprintf("Error %s", parseErr)
@@ -97,39 +116,48 @@ func main() {
 					Status:    status,
 				}
 
-				json, err := json.Marshal(accessLogRecord)
-				if err != nil {
-					paragraph.Text = fmt.Sprintf("Error %s", err)
-					failed = true
-				}
+				if isValid(accessLogRecord, config) {
+					counter++
+					json, err := json.Marshal(accessLogRecord)
+					if err != nil {
+						paragraph.Text = fmt.Sprintf("Error %s", err)
+						failed = true
+					}
 
-				req, err := http.NewRequest(http.MethodPut, fmt.Sprintf("http://localhost:9200/access_log/_doc/%d", counter), bytes.NewBuffer(json))
-				if err != nil {
-					paragraph.Text = fmt.Sprintf("Error %s", err)
-					failed = true
-				}
+					id := getId(accessLogRecord)
+					req, err := http.NewRequest(http.MethodPut, fmt.Sprintf("http://localhost:9200/access_log/_doc/%s", id), bytes.NewBuffer(json))
+					if err != nil {
+						paragraph.Text = fmt.Sprintf("Error %s", err)
+						failed = true
+					}
 
-				req.Header.Set("Content-Type", "application/json; charset=utf-8")
-				resp, err := client.Do(req)
-				if err != nil {
-					paragraph.Text = fmt.Sprintf("Error %s", err)
-					failed = true
-				}
+					req.Header.Set("Content-Type", "application/json; charset=utf-8")
+					resp, err := client.Do(req)
+					if err != nil {
+						paragraph.Text = fmt.Sprintf("Error %s", err)
+						failed = true
+					}
 
-				if !failed && resp.StatusCode >= 400 {
-					bodyBytes, _ := ioutil.ReadAll(resp.Body)
-					paragraph.Text = fmt.Sprintf("Failed to PUT request, %d: %s: %s", resp.StatusCode, resp.Status, string(bodyBytes))
-					failed = true
-					// return
+					if !failed && resp.StatusCode >= 400 {
+						bodyBytes, _ := ioutil.ReadAll(resp.Body)
+						paragraph.Text = fmt.Sprintf("Failed to PUT request, %d: %s: %s", resp.StatusCode, resp.Status, string(bodyBytes))
+						failed = true
+					}
+					resp.Body.Close()
 				}
-				resp.Body.Close()
 			}
 
 			totalBytesRead += int64(len(scanner.Bytes()))
 
 			progressGauge.Percent = int(100 * totalBytesRead / stat.Size())
 			if !failed {
-				paragraph.Text = fmt.Sprintf("Documents: %d, Bytes Read/Total: %s / %d", counter, strconv.FormatInt(totalBytesRead, 10), stat.Size())
+				paragraph.Text = fmt.Sprintf(
+					"Total: %d, Documents: %d, Percent: %d%%, Bytes Read/Total: %s / %d",
+					totalCounter,
+					counter,
+					100*counter/totalCounter,
+					strconv.FormatInt(totalBytesRead, 10), stat.Size(),
+				)
 			}
 			ui.Render(progressGauge, paragraph)
 		}
@@ -146,4 +174,42 @@ func main() {
 			return
 		}
 	}
+}
+
+func getId(accesslogRecord AccessLogRecord) string {
+	bytes := []byte(accesslogRecord.Domain + accesslogRecord.Path + accesslogRecord.HappendAt)
+	return fmt.Sprintf("%x", sha256.Sum256(bytes))
+}
+
+func isValid(record AccessLogRecord, config Config) bool {
+	return validDomain(record.Domain, config.Domains) && record.HappendAt > config.After
+}
+
+func readConfiguration(fileName string) Config {
+	file, openErr := os.Open(fileName)
+	if openErr != nil {
+		log.Fatal(openErr)
+	}
+	defer file.Close()
+
+	data, err := ioutil.ReadAll(file)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var config Config
+	if err := yaml.Unmarshal(data, &config); err != nil {
+		log.Fatal(err)
+	}
+
+	return config
+}
+
+func validDomain(toCheck string, domains []string) bool {
+	for _, domain := range domains {
+		if strings.HasSuffix(toCheck, domain) {
+			return true
+		}
+	}
+	return false
 }

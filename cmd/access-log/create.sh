@@ -8,18 +8,30 @@ curl -X PUT  -H 'Content-Type: application/json' http://localhost:9200/access_lo
     "properties": {
         "Domain": {
             "type": "text",
-            "fielddata": true
+            "fields": {
+                "keyword": {
+                    "type": "keyword"
+                }
+            }
         },
         "HappendAt": {
             "type": "date"
         },
         "Method": {
             "type": "text",
-            "fielddata": true
+            "fields": {
+                "keyword": {
+                    "type": "keyword"
+                }
+            }
         },
         "Path":  {
             "type": "text",
-            "fielddata": true
+            "fields": {
+                "keyword": {
+                    "type": "keyword"
+                }
+            }
         }
     }
 }' | jq
