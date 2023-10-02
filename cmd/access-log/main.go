@@ -35,8 +35,8 @@ type Config struct {
 	After   string
 }
 
-//                                                1   2          3       4     5              6         7
-var accessLogPattern = regexp.MustCompile(`.*\[0m(.*) (.*) - - \[(.*)\] "(\w+) (.*) HTTP/.*" (\d{1,3}) (\d+) ".*"`)
+//                                           1   2          3       4     5              6         7
+var accessLogPattern = regexp.MustCompile(`(.*) (.*) - - \[(.*)\] "(\w+) (.*) HTTP/.*" (\d{1,3}) (\d+) ".*"`)
 
 func main() {
 	config := readConfiguration(os.Args[2])
