@@ -27,6 +27,14 @@ const groupByYear = (dividends) => {
     return byYear;
 };
 
+const roundNumber = (number) => {
+    if (!number) {
+        return '0.00';
+    }
+
+    return Math.round(number * 100) / 100 + '';
+}
+
 const main = async () => {
     const today = new Date();
     const lastYear = today.getFullYear() - 1;
@@ -34,11 +42,19 @@ const main = async () => {
     for (let ticker of TICKERS_TO_ANALYZE) {
         const history = await get(`https://financialmodelingprep.com/api/v3/historical-price-full/stock_dividend/${ticker}?apikey=${API_KEY}`);
         const groupedByYear = groupByYear(history.historical);
+        const lastRecordDate = history.historical[0].recordDate;
         
         const priceData = await get(`https://financialmodelingprep.com/api/v3/quote/${ticker}?apikey=${API_KEY}`);
         const price = priceData[0].price;
         const lastYearDividends = groupedByYear[lastYear];
-        console.log(`${ticker}: ${lastYear} total dividends = ${lastYearDividends}, price = ${price}, yield = ${100 * lastYearDividends / price} %`)
+
+        let message = `${ticker}:`;
+        message += ` ${roundNumber(lastYear)} total dividends = ${roundNumber(lastYearDividends)}`;
+        message += `, price = ${roundNumber(price)}`;
+        message += `, yield = ${roundNumber(100 * lastYearDividends / price)}%`;
+        message += `, last record date: ${lastRecordDate}`;
+
+        console.log(message);
     }
 };
 
