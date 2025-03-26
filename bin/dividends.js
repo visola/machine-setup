@@ -38,7 +38,27 @@ const roundNumber = (number) => {
 const main = async () => {
     const today = new Date();
     const lastYear = today.getFullYear() - 1;
-    const TICKERS_TO_ANALYZE = ['FE', 'JNJ', 'JEPI', 'JEPQ', 'KBWD', 'MAXI', 'O', 'QYLE', 'SCHD', 'SDIV', 'SPYD', 'STWD', 'TSLY', 'ULTY', 'VZ', 'XYLD'];
+    const TICKERS_TO_ANALYZE = [
+        'FE',
+        'JEPI',
+        'JEPQ',
+        'JNJ',
+        'KBWD',
+        'MAXI',
+        'NUDV',
+        'O',
+        'QYLE',
+        'SCHD',
+        'SDIV',
+        'SDOG',
+        'SPYD',
+        'STWD',
+        'TSLY',
+        'ULTY',
+        'VZ',
+        'XSHD',
+        'XYLD',
+    ];
     for (let ticker of TICKERS_TO_ANALYZE) {
         const history = await get(`https://financialmodelingprep.com/api/v3/historical-price-full/stock_dividend/${ticker}?apikey=${API_KEY}`);
         const groupedByYear = groupByYear(history.historical);
