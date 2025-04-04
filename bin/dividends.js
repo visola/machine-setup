@@ -39,6 +39,7 @@ const main = async () => {
     const today = new Date();
     const lastYear = today.getFullYear() - 1;
     const TICKERS_TO_ANALYZE = [
+        'DIV',
         'FE',
         'JEPI',
         'JEPQ',
